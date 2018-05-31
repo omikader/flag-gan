@@ -33,8 +33,7 @@ def train_d(loader, model, optimizer, criterion):
         loss = criterion(data, target)
         loss.backward()
 
-flag_loader = utils.get_flag_loader()
-generator_loader = utils.get_generator_loader()
+flag_loader = utils.get_flag_loader(args.batch_size)
 
 G = Generator()
 D = Discriminator()
