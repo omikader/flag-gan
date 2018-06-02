@@ -1,4 +1,5 @@
 import argparse
+import matplotlib
 import numpy as np
 import torch
 import torch.nn as nn
@@ -74,12 +75,10 @@ if __name__ == '__main__':
     flag_loader = get_flag_loader(args.data, args.batch_size)
     NUM_BATCHES = len(flag_loader)
 
-    G, D = Generator(), Discriminator()
+    D, G = Discriminator(), Generator()
     loss = nn.BCELoss()
-    g_optimizer = optim.SGD(G.parameters(), lr=args.lr, momentum=args.momentum)
     d_optimizer = optim.SGD(D.parameters(), lr=args.lr, momentum=args.momentum)
-
-    train_d(flag_loader, data_generator, D, G, d_optimizer, loss)
+    g_optimizer = optim.SGD(G.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):
         train_d(flag_loader, data_generator, D, G, d_optimizer, loss)
