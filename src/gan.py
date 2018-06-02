@@ -1,5 +1,5 @@
 import argparse
-import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -82,6 +82,8 @@ def train_d(data_loader, discriminator, generator, optimizer, loss_fcn):
         (real_error + fake_error).backward()
         optimizer.step()
 
+        return real_error, fake_error
+
 
 def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
     for i in range(n_batches):
@@ -104,6 +106,16 @@ def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
         g_error.backward()
         optimizer.step()
 
+        return g_error
+
+
+def test_g(generator):
+    # Run noise through generator and reshape output vector to 4x16x32 to match
+    # flag size for display purposes
+    gen_input = Variable(torch.FloatTensor(100, 1).uniform_(0, 255))
+    sample = generator(gen_input).data[0].view(4, 16, 32)
+    return sample
+
 
 if __name__ == '__main__':
     flag_loader = get_flag_loader(args.data, args.batch_size)
@@ -115,15 +127,24 @@ if __name__ == '__main__':
     g_optimizer = optim.SGD(G.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):
-        train_d(
+        real_error, fake_error = train_d(
             data_loader=flag_loader,
             discriminator=D,
             generator=G,
             optimizer=d_optimizer,
             loss_fcn=loss)
-        train_g(
+        g_error = train_g(
             n_batches=NUM_BATCHES,
             discriminator=D,
             generator=G,
             optimizer=g_optimizer,
             loss_fcn=loss)
+
+        # Logging
+        print('Epoch: {}\nReal error: {}\nFake error: {}\nG error: {}\n'.format(
+            epoch, real_error.data[0], fake_error.data[0], g_error.data[0]))
+
+    sample = test_g(G)
+    img = transforms.functional.to_pil_image(sample, mode='RGBA')
+    imgplot = plt.imshow(img)
+    plt.show()
