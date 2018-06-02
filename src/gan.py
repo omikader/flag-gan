@@ -82,8 +82,6 @@ def train_d(data_loader, discriminator, generator, optimizer, loss_fcn):
         (real_error + fake_error).backward()
         optimizer.step()
 
-        return real_error, fake_error
-
 
 def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
     for i in range(n_batches):
@@ -106,8 +104,6 @@ def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
         g_error.backward()
         optimizer.step()
 
-        return g_error
-
 
 def test_g(generator):
     # Run noise through generator and reshape output vector to 4x16x32 to match
@@ -127,23 +123,20 @@ if __name__ == '__main__':
     g_optimizer = optim.SGD(G.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):
-        real_error, fake_error = train_d(
+        train_d(
             data_loader=flag_loader,
             discriminator=D,
             generator=G,
             optimizer=d_optimizer,
             loss_fcn=loss)
-        g_error = train_g(
+        train_g(
             n_batches=NUM_BATCHES,
             discriminator=D,
             generator=G,
             optimizer=g_optimizer,
             loss_fcn=loss)
 
-        # Logging
-        print('Epoch: {}\nReal error: {}\nFake error: {}\nG error: {}\n'.format(
-            epoch, real_error.data[0], fake_error.data[0], g_error.data[0]))
-
+    # Test Generator
     sample = test_g(G)
     img = transforms.functional.to_pil_image(sample, mode='RGBA')
     imgplot = plt.imshow(img)
