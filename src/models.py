@@ -11,7 +11,6 @@ class Generator(nn.Module):
         self.fc3 = nn.Linear(512, 2048)
 
     def forward(self, x):
-        x = x.view(-1, 100)
         x = F.relu(self.fc1(x))
         x = F.sigmoid(self.fc2(x))
         return self.fc3(x)
