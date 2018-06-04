@@ -42,6 +42,12 @@ parser.add_argument(
     default=10,
     metavar='N',
     help='num epochs before tesing the generator (default: 10)')
+parser.add_argument(
+    '--log-interval',
+    type=int,
+    default=10,
+    metavar='N',
+    help='how many batches to wait before logging training status')
 args = parser.parse_args()
 
 
@@ -61,100 +67,91 @@ def get_flag_loader(train_dir, batch_size, shuffle=True):
     return flag_loader
 
 
-def train_d(data_loader, discriminator, generator, optimizer, loss_fcn):
-    discriminator.train()
-    generator.train()
-    for data, _ in data_loader:
+def train(data_loader, epoch):
+    D.train()
+    G.train()
+
+    for batch_idx, (data, _) in enumerate(data_loader):
+        n_samples = data.size(dim=0)
+
+        #######################
+        # Train Discriminator #
+        #######################
+
         # Zero out gradients on discriminator
-        discriminator.zero_grad()
+        D.zero_grad()
 
         # Load real flag data, run through discriminator and compute BCE loss
-        # against target vector of all ones, because the flags are legit.
+        # against target vector of all ones, because the flags are legit
         real_data = Variable(data)
-        output = discriminator(real_data)
-        real_target = Variable(torch.ones(args.batch_size))
+        output = D(real_data)
+        real_target = Variable(torch.ones(n_samples))
         real_error = loss(output.squeeze(), real_target)
 
-        # Get uniformly distributed noise and feed to generator to create fake
+        # Get normally distributed noise and feed to generator to create fake
         # flag data. Run fake flag data through discriminator and compute BCE
-        # loss against target vector of all zeros, because data is fake.
-        noise = Variable(torch.randn(args.batch_size, 100))
-        fake_data = generator(noise)
-        decision = discriminator(fake_data)
-        fake_target = Variable(torch.zeros(args.batch_size))
-        fake_error = loss(decision.squeeze(), fake_target)
+        # loss against target vector of all zeros, because data is fake. Detach
+        # to avoid training generator on these labels
+        noise = Variable(torch.randn(n_samples, 100))
+        fake_data = G(noise)
+        output = D(fake_data.detach())
+        fake_target = Variable(torch.zeros(n_samples))
+        fake_error = loss(output.squeeze(), fake_target)
 
         # Compute accumulated gradient based on real and fake data to update
         # discriminator weights
-        (real_error + fake_error).backward()
-        optimizer.step()
+        d_error = real_error + fake_error
+        d_error.backward()
+        d_optim.step()
 
+        ###################
+        # Train Generator #
+        ###################
 
-def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
-    discriminator.train()
-    generator.train()
-    for batch_idx in range(n_batches):
         # Zero out gradients on generator
-        generator.zero_grad()
+        G.zero_grad()
 
-        # Get uniformly distributed noise and feed to generator to create fake
-        # flag data. Run fake flag data through discriminator and compute BCE
-        # loss against target vector of all ones. We want to fool the
-        # discriminator, so pretend the mapped data is genuine
-        noise = Variable(torch.randn(args.batch_size, 100))
-        fake_data = generator(noise)
-        decision = discriminator(fake_data)
-        target = Variable(torch.ones(args.batch_size))
-        g_error = loss(decision.squeeze(), target)
+        # Run fake flag data through discriminator and compute BCE loss against
+        # target vector of all ones. We want to fool the discriminator, so
+        # pretend the mapped data is genuine
+        output = D(fake_data)
+        g_error = loss(output.squeeze(), real_target)
 
         # Compute new gradients from discriminator and update weights of the
         # generator
         g_error.backward()
-        optimizer.step()
+        g_optim.step()
+
+        # Logging
+        if batch_idx % args.log_interval == 0:
+            print('({:02d}, {:02d}) \tLoss_D: {:.6f} \tLoss_G: {:.6f}'.format(
+                epoch, batch_idx, d_error.data[0], g_error.data[0]))
 
 
-def test_g(generator, fixed_noise):
-    generator.eval()
+def test(fixed_noise, epoch):
+    G.eval()
     # Run noise through generator and reshape output vector to 4x16x32 to match
-    # flag size for display purposes
-    sample = generator(fixed_noise).data[0].view(4, 16, 32)
-    return sample
+    # flag size for display purposes. Convert to RGBA PIL image and display
+    sample = G(fixed_noise).data[0].view(4, 16, 32)
+    img = transforms.functional.to_pil_image(sample, mode='RGBA')
+    imgplot = plt.imshow(img)
+    plt.title('Epoch {}'.format(epoch))
+    plt.show()
 
 
 if __name__ == '__main__':
-    flag_loader = get_flag_loader(args.data, args.batch_size)
-    NUM_BATCHES = len(flag_loader)
-
     D, G = Discriminator(), Generator()
     loss = nn.BCELoss()
-    d_optimizer = optim.Adam(
-        D.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
-    g_optimizer = optim.Adam(
-        G.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
+    d_optim = optim.Adam(D.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
+    g_optim = optim.Adam(G.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
 
-    fixed_noise = Variable(torch.randn(1, 100))
+    flag_loader = get_flag_loader(args.data, args.batch_size)
+    noise = Variable(torch.randn(1, 100))
 
     for epoch in range(1, args.epochs + 1):
-        # Train Discriminator
-        train_d(
-            data_loader=flag_loader,
-            discriminator=D,
-            generator=G,
-            optimizer=d_optimizer,
-            loss_fcn=loss)
-
-        # Train Generator
-        train_g(
-            n_batches=NUM_BATCHES,
-            discriminator=D,
-            generator=G,
-            optimizer=g_optimizer,
-            loss_fcn=loss)
+        # Train Model
+        train(data_loader=flag_loader, epoch=epoch)
 
         # Test Generator
         if epoch % args.test_interval == 0:
-            sample = test_g(generator=G, fixed_noise=fixed_noise)
-            img = transforms.functional.to_pil_image(sample, mode='RGBA')
-            imgplot = plt.imshow(img)
-            plt.title('Epoch {}'.format(epoch))
-            plt.show()
+            test(fixed_noise=noise, epoch=epoch)
