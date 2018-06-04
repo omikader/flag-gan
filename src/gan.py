@@ -140,10 +140,10 @@ def test(fixed_noise, epoch):
 
 
 if __name__ == '__main__':
-    D, G = Discriminator(), Generator()
+    G, D = Generator(), Discriminator()
     loss = nn.BCELoss()
-    d_optim = optim.Adam(D.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
     g_optim = optim.Adam(G.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
+    d_optim = optim.Adam(D.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
 
     flag_loader = get_flag_loader()
     noise = Variable(torch.randn(1, 100))
