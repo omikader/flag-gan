@@ -62,6 +62,8 @@ def get_flag_loader(train_dir, batch_size, shuffle=True):
 
 
 def train_d(data_loader, discriminator, generator, optimizer, loss_fcn):
+    discriminator.train()
+    generator.train()
     for data, _ in data_loader:
         # Zero out gradients on discriminator
         discriminator.zero_grad()
@@ -70,8 +72,8 @@ def train_d(data_loader, discriminator, generator, optimizer, loss_fcn):
         # against target vector of all ones, because the flags are legit.
         real_data = Variable(data)
         output = discriminator(real_data)
-        real_target = Variable(torch.ones(args.batch_size, 1))
-        real_error = loss(output, real_target)
+        real_target = Variable(torch.ones(args.batch_size))
+        real_error = loss(output.squeeze(), real_target)
 
         # Get uniformly distributed noise and feed to generator to create fake
         # flag data. Run fake flag data through discriminator and compute BCE
@@ -79,8 +81,8 @@ def train_d(data_loader, discriminator, generator, optimizer, loss_fcn):
         raw_input = Variable(torch.randn(args.batch_size, 100))
         fake_data = generator(raw_input)
         decision = discriminator(fake_data)
-        fake_target = Variable(torch.zeros(args.batch_size, 1))
-        fake_error = loss(decision, fake_target)
+        fake_target = Variable(torch.zeros(args.batch_size))
+        fake_error = loss(decision.squeeze(), fake_target)
 
         # Compute accumulated gradient based on real and fake data to update
         # discriminator weights
@@ -89,6 +91,8 @@ def train_d(data_loader, discriminator, generator, optimizer, loss_fcn):
 
 
 def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
+    discriminator.train()
+    generator.train()
     for batch_idx in range(n_batches):
         # Zero out gradients on generator
         generator.zero_grad()
@@ -100,8 +104,8 @@ def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
         raw_input = Variable(torch.randn(args.batch_size, 100))
         fake_data = generator(raw_input)
         decision = discriminator(fake_data)
-        target = Variable(torch.ones(args.batch_size, 1))
-        g_error = loss(decision, target)
+        target = Variable(torch.ones(args.batch_size))
+        g_error = loss(decision.squeeze(), target)
 
         # Compute new gradients from discriminator and update weights of the
         # generator
@@ -110,6 +114,7 @@ def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
 
 
 def test_g(generator):
+    generator.eval()
     # Run noise through generator and reshape output vector to 4x16x32 to match
     # flag size for display purposes
     raw_input = Variable(torch.randn(1, 100))
