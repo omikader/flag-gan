@@ -41,7 +41,7 @@ parser.add_argument(
     type=int,
     default=10,
     metavar='N',
-    help='how many epochs to wait before tesing the generator')
+    help='num epochs before tesing the generator (default: 10)')
 args = parser.parse_args()
 
 
@@ -113,12 +113,11 @@ def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
         optimizer.step()
 
 
-def test_g(generator):
+def test_g(generator, fixed_noise):
     generator.eval()
     # Run noise through generator and reshape output vector to 4x16x32 to match
     # flag size for display purposes
-    noise = Variable(torch.randn(1, 100))
-    sample = generator(noise).data[0].view(4, 16, 32)
+    sample = generator(fixed_noise).data[0].view(4, 16, 32)
     return sample
 
 
@@ -130,6 +129,8 @@ if __name__ == '__main__':
     loss = nn.BCELoss()
     d_optimizer = optim.SGD(D.parameters(), lr=args.lr, momentum=args.momentum)
     g_optimizer = optim.SGD(G.parameters(), lr=args.lr, momentum=args.momentum)
+
+    fixed_noise = Variable(torch.randn(1, 100))
 
     for epoch in range(1, args.epochs + 1):
         # Train Discriminator
@@ -150,7 +151,7 @@ if __name__ == '__main__':
 
         # Test Generator
         if epoch % args.test_interval == 0:
-            sample = test_g(G)
+            sample = test_g(generator=G, fixed_noise=fixed_noise)
             img = transforms.functional.to_pil_image(sample, mode='RGBA')
             imgplot = plt.imshow(img)
             plt.title('Epoch {}'.format(epoch))
