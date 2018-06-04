@@ -27,15 +27,15 @@ parser.add_argument(
 parser.add_argument(
     '--lr',
     type=float,
-    default=0.01,
+    default=0.001,
     metavar='LR',
-    help='learning rate (default: 0.01)')
+    help='learning rate (default: 0.001)')
 parser.add_argument(
-    '--momentum',
+    '--beta1',
     type=float,
     default=0.5,
-    metavar='M',
-    help='SGD momentum (default: 0.5)')
+    metavar='B',
+    help='Adam coefficient (default: 0.5)')
 parser.add_argument(
     '--test-interval',
     type=int,
@@ -127,8 +127,10 @@ if __name__ == '__main__':
 
     D, G = Discriminator(), Generator()
     loss = nn.BCELoss()
-    d_optimizer = optim.SGD(D.parameters(), lr=args.lr, momentum=args.momentum)
-    g_optimizer = optim.SGD(G.parameters(), lr=args.lr, momentum=args.momentum)
+    d_optimizer = optim.Adam(
+        D.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
+    g_optimizer = optim.Adam(
+        G.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
 
     fixed_noise = Variable(torch.randn(1, 100))
 
