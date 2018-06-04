@@ -57,10 +57,10 @@ def pil_loader(path):
             return img.convert('RGBA')
 
 
-def get_flag_loader(train_dir, batch_size, shuffle=True):
+def get_flag_loader(dir=args.data, batch_size=args.batch_size, shuffle=True):
     transform = transforms.ToTensor()
     flag_dataset = datasets.ImageFolder(
-        root=train_dir, transform=transform, loader=pil_loader)
+        root=dir, transform=transform, loader=pil_loader)
     flag_loader = torch.utils.data.DataLoader(
         dataset=flag_dataset, batch_size=batch_size, shuffle=shuffle)
 
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     d_optim = optim.Adam(D.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
     g_optim = optim.Adam(G.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
 
-    flag_loader = get_flag_loader(args.data, args.batch_size)
+    flag_loader = get_flag_loader()
     noise = Variable(torch.randn(1, 100))
 
     for epoch in range(1, args.epochs + 1):
