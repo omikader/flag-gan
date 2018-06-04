@@ -78,8 +78,8 @@ def train_d(data_loader, discriminator, generator, optimizer, loss_fcn):
         # Get uniformly distributed noise and feed to generator to create fake
         # flag data. Run fake flag data through discriminator and compute BCE
         # loss against target vector of all zeros, because data is fake.
-        raw_input = Variable(torch.randn(args.batch_size, 100))
-        fake_data = generator(raw_input)
+        noise = Variable(torch.randn(args.batch_size, 100))
+        fake_data = generator(noise)
         decision = discriminator(fake_data)
         fake_target = Variable(torch.zeros(args.batch_size))
         fake_error = loss(decision.squeeze(), fake_target)
@@ -101,8 +101,8 @@ def train_g(n_batches, discriminator, generator, optimizer, loss_fcn):
         # flag data. Run fake flag data through discriminator and compute BCE
         # loss against target vector of all ones. We want to fool the
         # discriminator, so pretend the mapped data is genuine
-        raw_input = Variable(torch.randn(args.batch_size, 100))
-        fake_data = generator(raw_input)
+        noise = Variable(torch.randn(args.batch_size, 100))
+        fake_data = generator(noise)
         decision = discriminator(fake_data)
         target = Variable(torch.ones(args.batch_size))
         g_error = loss(decision.squeeze(), target)
@@ -117,8 +117,8 @@ def test_g(generator):
     generator.eval()
     # Run noise through generator and reshape output vector to 4x16x32 to match
     # flag size for display purposes
-    raw_input = Variable(torch.randn(1, 100))
-    sample = generator(raw_input).data[0].view(4, 16, 32)
+    noise = Variable(torch.randn(1, 100))
+    sample = generator(noise).data[0].view(4, 16, 32)
     return sample
 
 
