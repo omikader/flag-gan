@@ -58,7 +58,10 @@ def pil_loader(path):
 
 
 def get_flag_loader(dir=args.data, batch_size=args.batch_size, shuffle=True):
-    transform = transforms.ToTensor()
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5, 0.5), (0.5, 0.5, 0.5, 0.5))
+    ])
     flag_dataset = datasets.ImageFolder(
         root=dir, transform=transform, loader=pil_loader)
     flag_loader = torch.utils.data.DataLoader(
