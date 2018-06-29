@@ -45,7 +45,7 @@ parser.add_argument(
 parser.add_argument(
     '--log-interval',
     type=int,
-    default=10,
+    default=1,
     metavar='N',
     help='how many batches to wait before logging training status')
 args = parser.parse_args()
@@ -58,10 +58,7 @@ def pil_loader(path):
 
 
 def get_flag_loader(dir=args.data, batch_size=args.batch_size, shuffle=True):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5, 0.5), (0.5, 0.5, 0.5, 0.5))
-    ])
+    transform = transforms.ToTensor()
     flag_dataset = datasets.ImageFolder(
         root=dir, transform=transform, loader=pil_loader)
     flag_loader = torch.utils.data.DataLoader(
@@ -95,7 +92,7 @@ def train(data_loader, epoch):
         # flag data. Run fake flag data through discriminator and compute BCE
         # loss against target vector of all zeros, because data is fake. Detach
         # to avoid training generator on these labels
-        noise = Variable(torch.randn(n_samples, 100))
+        noise = Variable(torch.randn(n_samples, 100, 1, 1))
         fake_data = G(noise)
         output = D(fake_data.detach())
         fake_target = Variable(torch.zeros(n_samples))
@@ -149,7 +146,7 @@ if __name__ == '__main__':
     d_optim = optim.Adam(D.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
 
     flag_loader = get_flag_loader()
-    noise = Variable(torch.randn(1, 100))
+    noise = Variable(torch.randn(1, 100, 1, 1))
 
     for epoch in range(1, args.epochs + 1):
         # Train Model
